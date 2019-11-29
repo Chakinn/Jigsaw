@@ -1,7 +1,7 @@
 settings = {
-    columnCount: 4,
-    rowCount: 4,
-    imageURL: "C:\\Sem5\WWW\\Lista3\\Jigsaw\\images\\karina-zhukovskaya-qMI4XmgTST8-unsplash.jpg"
+    columnCount: 3,
+    rowCount: 3,
+    imageURL: "C:\\Sem5\\WWW\\Lista3\\Jigsaw\\images\\tocotoucan.jpg"
 }
 
 /*
@@ -51,20 +51,24 @@ function blankNeighbour(x, y) {
     //check left
     if (x > 0 && isBlank(board[x - 1][y])) {
         swap(x, y, x - 1, y);
+        return true;
     }
     //check right
     if (x < settings.columnCount-1 && isBlank(board[x + 1][y])) {
         swap(x, y, x + 1, y);
+        return true;
     }
     //check top
     if (y > 0 && isBlank(board[x][y - 1])) {
         swap(x, y, x, y - 1);
+        return true;
     }
     //check bot
-    if (x < settings.rowCount-1 && isBlank(board[x][y + 1])) {
+    if (y < settings.rowCount-1 && isBlank(board[x][y + 1])) {
         swap(x, y, x, y + 1);
+        return true;
     }
-
+    return false;
 }
 
 //swaps section (x1,y1) with section (x2,y2)
@@ -121,7 +125,7 @@ function isCompleted() {
     for (var i = 0; i < settings.columnCount; i++) {
         for (var j = 0; j < settings.rowCount; j++) {
             var coord = board[i][j];
-            if (coord.x !== i && coord.x !== -1 && coord.y !== j && coord.y !== -1) {
+            if (coord.x !== i && coord.x !== -1 || coord.y !== j && coord.y !== -1) {
                 return false
             }
         }
@@ -129,11 +133,55 @@ function isCompleted() {
     return true;
 }
 
+/**********VIEW**********/
+var jigsawCanvas = document.getElementById("jigsawCanvas");
+var jigsawContext = jigsawCanvas.getContext("2d");
+var originalCanvas = document.getElementById("originalCanvas");
+var originalContext = originalCanvas.getContext("2d");
+var image = document.getElementById("mImage")
 
-initializeBoard();
-shuffleBoard();
-console.log(board);
+var sectionWidth = jigsawCanvas.offsetWidth/settings.columnCount;
+var sectionHeight = jigsawCanvas.offsetHeight/settings.rowCount;
 
+function drawBoard() {
+    for(var i = 0; i<settings.columnCount; i++) {
+        for(var j=0; j<settings.rowCount; j++) {
+            coords = board[i][j];
+            var imgData = originalContext.getImageData(coords.x*sectionWidth,coords.y*sectionHeight,sectionWidth,sectionHeight);
+            jigsawContext.putImageData(imgData, i*sectionWidth, j*sectionHeight);
+        }
+    }
+}
 
+/**********CONTROLLER**********/
+function initialize() {
+    initializeBoard();
+    shuffleBoard();
+    originalContext.drawImage(image,0,0);
+    drawBoard();
+}
+window.onload=initialize;
+
+//Determines which section was clicked
+function sectionFromClickCoords(x,y) {
+    column = Math.floor(x/sectionWidth);
+    row = Math.floor(y/sectionHeight);
+    return {x:column,y:row};
+}
+
+document.addEventListener("click", (event) => {
+    if(!event.target.matches("#jigsawCanvas")) {
+        return;
+    }
+    section = sectionFromClickCoords(event.offsetX,event.offsetY);
+    if(blankNeighbour(section.x,section.y)) {
+        drawBoard();
+        if(isCompleted()) {
+            console.log(board);
+            alert("you win!")
+        }
+    }
+
+},false);
 
 
