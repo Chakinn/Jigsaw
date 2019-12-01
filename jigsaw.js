@@ -28,6 +28,7 @@ settings = {
     blank section is represented by {x:-1,y:-1}
 */
 var board;
+var blank;  ////save blank coordinates
 function initializeBoard() {
     board = new Array(settings.columnCount)
     for (var i = 0; i < settings.columnCount; i++) {
@@ -46,26 +47,22 @@ function isBlank(coords) {
     return false;
 }
 
-//swaps section (x,y) with blank neighbouring section if it's possible
+//checks if section (x,y) is neighbour to blank section
 function blankNeighbour(x, y) {
     //check left
     if (x > 0 && isBlank(board[x - 1][y])) {
-        swap(x, y, x - 1, y);
         return true;
     }
     //check right
-    if (x < settings.columnCount-1 && isBlank(board[x + 1][y])) {
-        swap(x, y, x + 1, y);
+    if (x < settings.columnCount - 1 && isBlank(board[x + 1][y])) {
         return true;
     }
     //check top
     if (y > 0 && isBlank(board[x][y - 1])) {
-        swap(x, y, x, y - 1);
         return true;
     }
     //check bot
-    if (y < settings.rowCount-1 && isBlank(board[x][y + 1])) {
-        swap(x, y, x, y + 1);
+    if (y < settings.rowCount - 1 && isBlank(board[x][y + 1])) {
         return true;
     }
     return false;
@@ -78,36 +75,36 @@ function swap(x1, y1, x2, y2) {
 
 //Shuffles board considering rules of the game (shuffled board is solvable)
 function shuffleBoard() {
-    board[0][0] = {x:-1,y:-1}; //mark top left as blank
-    var blank = {x:0,y:0};  //save blank coordinates
-    for(var i = 0; i < 1000; i++) {
+    board[0][0] = { x: -1, y: -1 }; //mark top left as blank
+    blank = { x: 0, y: 0 };
+    for (var i = 0; i < 1000; i++) {
         var move = randomInt(4); //0-left,1-top,2-right,3-bot
-        switch(move) {
+        switch (move) {
             case 0: {
-                if(blank.x > 0) {
-                    swap(blank.x,blank.y,blank.x-1,blank.y);
-                    blank = {x:blank.x-1,y:blank.y};
+                if (blank.x > 0) {
+                    swap(blank.x, blank.y, blank.x - 1, blank.y);
+                    blank = { x: blank.x - 1, y: blank.y };
                 }
                 break;
             }
             case 1: {
-                if(blank.y > 0) {
-                    swap(blank.x,blank.y,blank.x,blank.y-1);
-                    blank = {x:blank.x,y:blank.y-1};
+                if (blank.y > 0) {
+                    swap(blank.x, blank.y, blank.x, blank.y - 1);
+                    blank = { x: blank.x, y: blank.y - 1 };
                 }
                 break;
             }
             case 2: {
-                if(blank.x < settings.columnCount-1) {
-                    swap(blank.x,blank.y,blank.x + 1,blank.y);
-                    blank = {x:blank.x+1,y:blank.y};
+                if (blank.x < settings.columnCount - 1) {
+                    swap(blank.x, blank.y, blank.x + 1, blank.y);
+                    blank = { x: blank.x + 1, y: blank.y };
                 }
                 break;
             }
             case 3: {
-                if(blank.y < settings.rowCount-1) {
-                    swap(blank.x,blank.y,blank.x,blank.y+1);
-                    blank = {x:blank.x,y:blank.y+1};
+                if (blank.y < settings.rowCount - 1) {
+                    swap(blank.x, blank.y, blank.x, blank.y + 1);
+                    blank = { x: blank.x, y: blank.y + 1 };
                 }
                 break;
             }
@@ -138,50 +135,134 @@ var jigsawCanvas = document.getElementById("jigsawCanvas");
 var jigsawContext = jigsawCanvas.getContext("2d");
 var originalCanvas = document.getElementById("originalCanvas");
 var originalContext = originalCanvas.getContext("2d");
-var image = document.getElementById("mImage")
+var gallery = document.getElementById("gallery");
+var startButton = document.getElementById("startButton");
+var beginButton = document.getElementById("beginButton");
 
-var sectionWidth = jigsawCanvas.offsetWidth/settings.columnCount;
-var sectionHeight = jigsawCanvas.offsetHeight/settings.rowCount;
+var sectionWidth;
+var sectionHeight;
 
 function drawBoard() {
-    for(var i = 0; i<settings.columnCount; i++) {
-        for(var j=0; j<settings.rowCount; j++) {
+    for (var i = 0; i < settings.columnCount; i++) {
+        for (var j = 0; j < settings.rowCount; j++) {
             coords = board[i][j];
-            var imgData = originalContext.getImageData(coords.x*sectionWidth,coords.y*sectionHeight,sectionWidth,sectionHeight);
-            jigsawContext.putImageData(imgData, i*sectionWidth, j*sectionHeight);
+            var imgData = originalContext.getImageData(coords.x * sectionWidth, coords.y * sectionHeight, sectionWidth, sectionHeight);
+            jigsawContext.putImageData(imgData, i * sectionWidth, j * sectionHeight);
         }
     }
 }
 
 /**********CONTROLLER**********/
-function initialize() {
+function initializeGame(gameImage) {
     initializeBoard();
-    shuffleBoard();
-    originalContext.drawImage(image,0,0);
-    drawBoard();
+    jigsawCanvas.style.display = "inline";
+    originalCanvas.style.opacity = 0;
+    originalCanvas.style.display = "inline";
+    gallery.style.display = "none";
+    startButton.style.display = "none";
+    beginButton.style.display = "inline";
+    beginButton.addEventListener("click", () => { startGame(); });
+    sectionWidth = jigsawCanvas.offsetWidth / settings.columnCount;
+    sectionHeight = jigsawCanvas.offsetHeight / settings.rowCount;
+    originalContext.drawImage(gameImage, 0, 0);
+    jigsawContext.drawImage(gameImage, 0, 0);
 }
-window.onload=initialize;
 
 //Determines which section was clicked
-function sectionFromClickCoords(x,y) {
-    column = Math.floor(x/sectionWidth);
-    row = Math.floor(y/sectionHeight);
-    return {x:column,y:row};
+function sectionFromClickCoords(x, y) {
+    column = Math.floor(x / sectionWidth);
+    row = Math.floor(y / sectionHeight);
+    return { x: column, y: row };
 }
 
-document.addEventListener("click", (event) => {
-    if(!event.target.matches("#jigsawCanvas")) {
+function resolveClick(event) {
+    if (!event.target.matches("#jigsawCanvas")) {
         return;
     }
-    section = sectionFromClickCoords(event.offsetX,event.offsetY);
-    if(blankNeighbour(section.x,section.y)) {
+    console.log(event.offsetX);
+    section = sectionFromClickCoords(event.offsetX, event.offsetY);
+    if (blankNeighbour(section.x, section.y)) {
+        console.log(section.x);
+        swap(section.x, section.y, blank.x, blank.y);
         drawBoard();
-        if(isCompleted()) {
+        blank.x = section.x;
+        blank.y = section.y;
+        if (isCompleted()) {
             console.log(board);
             alert("you win!")
         }
     }
+}
 
-},false);
+
+function startGame() {
+    shuffleBoard();
+    drawBoard();
+    document.addEventListener("click", (event) => { resolveClick(event) });
+}
 
 
+/**********GALLERY**********/
+
+
+function getBiggerImagePath(smallImagePath) {
+    var imgFilename = smallImagePath.slice(smallImagePath.lastIndexOf("/") + 1);  // extracts filename from file path  (this/is/long/path/to/image_c.jpg => image_c.jpg)
+    imgFilename = imgFilename.replace("_c", "_s");
+    return "images/".concat(imgFilename);
+}
+
+function loadBiggerVersion(imgElement) {
+    return new Promise(
+        (resolve, reject) => {
+            imgElement.src = getBiggerImagePath(imgElement.src);
+            imgElement.onload = () => { resolve(imgElement) };
+            imgElement.onerror = () => { reject(imgElement) };
+        }
+    )
+}
+
+function loadHDGallery() {
+    var galleryPromises = [];
+    var galleryImages = document.getElementsByClassName("galleryImage");
+    for (var i = 0; i < galleryImages.length; i++) {
+        galleryPromises.push(loadBiggerVersion(galleryImages[i]));
+    }
+
+    Promise.all(galleryPromises).then(() => { }).catch(() => { });
+}
+
+function initializeGallery() {
+    var selectedImage = "";
+    var galleryImages = document.getElementsByClassName("galleryImage");
+    for (var i = 0; i < galleryImages.length; i++) {
+        galleryImages[i].addEventListener("click", (event) => {
+            selectedImage = event.target.src;
+            selectedImage = selectedImage.slice(selectedImage.lastIndexOf("/") + 1);
+            selectedImage = selectedImage.replace(new RegExp("_c|_s"), "");
+            selectedImage = "images/".concat(selectedImage);
+            console.log(selectedImage);
+        })
+    }
+
+    startButton.addEventListener("click", () => {
+        if (selectedImage === "") {
+            return;
+        }
+        var initializeGamePromise = new Promise((resolve, reject) => {
+            var gameImage = new Image();
+            gameImage.id = "gameImage";
+            gameImage.onload = () => { resolve(gameImage) };
+            gameImage.onerror = () => { reject(gameImage) };
+            gameImage.src = selectedImage;
+        });
+        initializeGamePromise.then((gameImage) => {
+            // document.body.appendChild(gameImage);
+            initializeGame(gameImage);
+        }).catch(() => {
+
+        })
+    });
+    loadHDGallery();
+}
+
+initializeGallery();

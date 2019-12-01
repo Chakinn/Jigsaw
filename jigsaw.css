@@ -5,10 +5,39 @@
 }
 #jigsawCanvas {
     margin-left: 50px;
+    display:none;
 }
 #originalCanvas {
     display:none;
 }
-#mImage {
-    display: none;
+#beginButton {
+    display:none;
+}
+
+.galleryItem {
+    justify-content: center;
+    padding:10px;
+}
+
+.galleryImage {
+    width: -webkit-fill-available;
+}
+
+#gallery {
+    margin-right: 1vw;
+    margin-left: 1vw;
+    list-style: none;
+    display: grid;
+    grid-template-columns: 1fr;
+}
+
+@media screen and (min-width: 850px) {
+    #gallery {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+@media screen and (min-width: 1300px) {
+    #gallery {
+        grid-template-columns: 1fr 1fr 1fr;
+    }
 }
