@@ -133,77 +133,150 @@ function isCompleted() {
 /**********VIEW**********/
 var jigsawCanvas = document.getElementById("jigsawCanvas");
 var jigsawContext = jigsawCanvas.getContext("2d");
-var originalCanvas = document.getElementById("originalCanvas");
-var originalContext = originalCanvas.getContext("2d");
 var gallery = document.getElementById("gallery");
-var startButton = document.getElementById("startButton");
+var gameMenu = document.getElementById("gameMenu");
 var beginButton = document.getElementById("beginButton");
+var menuButton = document.getElementById("menuButton");
+var galleryMenu = document.getElementById("galleryMenu");
+var columnInput = document.getElementById("columnInput");
+var rowInput = document.getElementById("rowInput");
+var victoryText = document.getElementById("victoryText");
 
 var sectionWidth;
 var sectionHeight;
 
+function drawSection(sectionX, sectionY) {
+    let originalX = board[sectionX][sectionY].x
+    let originalY = board[sectionX][sectionY].y
+    if (originalX !== -1) {
+        jigsawContext.drawImage(currentImage, originalX * sectionWidth, originalY * sectionHeight, sectionWidth, sectionHeight, sectionX * sectionWidth, sectionY * sectionHeight, sectionWidth, sectionHeight);
+    }
+    else {
+        jigsawContext.fillStyle = "#dd0000";
+        jigsawContext.fillRect(sectionX * sectionWidth, sectionY * sectionHeight, sectionWidth, sectionHeight);
+    }
+}
+
 function drawBoard() {
     for (var i = 0; i < settings.columnCount; i++) {
         for (var j = 0; j < settings.rowCount; j++) {
-            coords = board[i][j];
-            var imgData = originalContext.getImageData(coords.x * sectionWidth, coords.y * sectionHeight, sectionWidth, sectionHeight);
-            jigsawContext.putImageData(imgData, i * sectionWidth, j * sectionHeight);
+            drawSection(i, j);
         }
     }
+}
+
+var previousSection = { x: 0, y: 0 };
+
+function highlightSection(sectionX, sectionY) {
+    var imgData = jigsawContext.getImageData(sectionX * sectionWidth, sectionY * sectionHeight, sectionWidth, sectionHeight);
+    var pixels = imgData.data;
+    for (var i = 0; i < pixels.length; i += 4) {
+        var factor = 50;
+        pixels[i] = Math.min(pixels[i] + factor, 255);
+        pixels[i + 1] = Math.min(pixels[i + 1] + factor, 255);
+        pixels[i + 2] = Math.min(pixels[i + 2] + factor, 255);
+    }
+    jigsawContext.putImageData(imgData, sectionX * sectionWidth, sectionY * sectionHeight);
+}
+
+//hides game and shows gallery
+function showGalleryView() {
+    jigsawCanvas.style.display = "none";
+    gameMenu.style.display = "none";
+    gallery.style.display = "grid";
+    galleryMenu.style.display = "flex";
+}
+
+//hides gallery and shows game screen
+function showGameView() {
+    jigsawCanvas.style.display = "inline";
+    gameMenu.style.display = "flex";
+    gallery.style.display = "none";
+    galleryMenu.style.display = "none";
+    beginButton.textContent = "begin";
 }
 
 /**********CONTROLLER**********/
+var currentImage;
+
 function initializeGame(gameImage) {
-    initializeBoard();
-    jigsawCanvas.style.display = "inline";
-    originalCanvas.style.opacity = 0;
-    originalCanvas.style.display = "inline";
-    gallery.style.display = "none";
-    startButton.style.display = "none";
-    beginButton.style.display = "inline";
-    beginButton.addEventListener("click", () => { startGame(); });
-    sectionWidth = jigsawCanvas.offsetWidth / settings.columnCount;
-    sectionHeight = jigsawCanvas.offsetHeight / settings.rowCount;
-    originalContext.drawImage(gameImage, 0, 0);
+    showGameView();
+    sectionWidth = jigsawCanvas.width / settings.columnCount;
+    sectionHeight = jigsawCanvas.height / settings.rowCount;
     jigsawContext.drawImage(gameImage, 0, 0);
+    currentImage = gameImage;
 }
 
-//Determines which section was clicked
-function sectionFromClickCoords(x, y) {
-    column = Math.floor(x / sectionWidth);
-    row = Math.floor(y / sectionHeight);
+//Determines which section contains given coordinates
+function sectionFromCoords(x, y) {
+    canvasX = (jigsawCanvas.width / jigsawCanvas.offsetWidth) * x
+    canvasY = (jigsawCanvas.height / jigsawCanvas.offsetHeight) * y
+    column = Math.floor(canvasX / sectionWidth);
+    row = Math.floor(canvasY / sectionHeight);
     return { x: column, y: row };
 }
 
-function resolveClick(event) {
-    if (!event.target.matches("#jigsawCanvas")) {
-        return;
-    }
-    console.log(event.offsetX);
-    section = sectionFromClickCoords(event.offsetX, event.offsetY);
-    if (blankNeighbour(section.x, section.y)) {
-        console.log(section.x);
-        swap(section.x, section.y, blank.x, blank.y);
+function resolveClick(sectionX, sectionY) {
+    if (blankNeighbour(sectionX, sectionY)) {
+        swap(sectionX, sectionY, blank.x, blank.y);
         drawBoard();
-        blank.x = section.x;
-        blank.y = section.y;
+        blank.x = sectionX;
+        blank.y = sectionY;
         if (isCompleted()) {
-            console.log(board);
-            alert("you win!")
+            finishGame();
         }
     }
 }
 
+//Listeners only active during game
+var clickEventListener = (event) => {
+    let section = sectionFromCoords(event.offsetX, event.offsetY);
+    resolveClick(section.x, section.y);
+};
+
+var moveEventListener = (event) => {
+    let section = sectionFromCoords(event.offsetX, event.offsetY);
+
+    if (section.x !== previousSection.x || section.y !== previousSection.y) {
+        if (blankNeighbour(section.x, section.y)) {
+            highlightSection(section.x, section.y);
+        }
+        drawSection(previousSection.x, previousSection.y);
+        previousSection = section;
+    }
+};
+
+//adds game handlers
+function addMouseHandlers() {
+    jigsawCanvas.addEventListener("click", clickEventListener);
+    jigsawCanvas.addEventListener("mousemove", moveEventListener);
+}
+
+//removes game handlers
+function removeMouseHandlers() {
+    jigsawCanvas.removeEventListener("click", clickEventListener);
+    jigsawCanvas.removeEventListener("mousemove", moveEventListener);
+}
 
 function startGame() {
+    beginButton.textContent = "restart";
+    victoryText.style.display = "none";
+    addMouseHandlers();
+    initializeBoard();
     shuffleBoard();
     drawBoard();
-    document.addEventListener("click", (event) => { resolveClick(event) });
+}
+
+function finishGame() {
+    removeMouseHandlers();
+    victoryText.style.display = "inline";
 }
 
 
 /**********GALLERY**********/
 
+var selectedElement = null;
+var selectedImage = "";
 
 function getBiggerImagePath(smallImagePath) {
     var imgFilename = smallImagePath.slice(smallImagePath.lastIndexOf("/") + 1);  // extracts filename from file path  (this/is/long/path/to/image_c.jpg => image_c.jpg)
@@ -231,38 +304,47 @@ function loadHDGallery() {
     Promise.all(galleryPromises).then(() => { }).catch(() => { });
 }
 
-function initializeGallery() {
-    var selectedImage = "";
-    var galleryImages = document.getElementsByClassName("galleryImage");
-    for (var i = 0; i < galleryImages.length; i++) {
-        galleryImages[i].addEventListener("click", (event) => {
+function initializeUI() {
+    gallery.addEventListener("click", (event) => {
+        if (event.target.matches(".galleryImage")) {
             selectedImage = event.target.src;
             selectedImage = selectedImage.slice(selectedImage.lastIndexOf("/") + 1);
             selectedImage = selectedImage.replace(new RegExp("_c|_s"), "");
             selectedImage = "images/".concat(selectedImage);
-            console.log(selectedImage);
-        })
-    }
+            if (selectedElement !== null) {
+                selectedElement.classList.remove("selected");
+            }
+            selectedElement = event.target.parentElement;
+            selectedElement.classList.add("selected");
+
+        }
+    });
 
     startButton.addEventListener("click", () => {
-        if (selectedImage === "") {
+        if (selectedImage === "" || columnInput.value < 2 || rowInput.value < 2) {
             return;
         }
         var initializeGamePromise = new Promise((resolve, reject) => {
             var gameImage = new Image();
-            gameImage.id = "gameImage";
             gameImage.onload = () => { resolve(gameImage) };
             gameImage.onerror = () => { reject(gameImage) };
             gameImage.src = selectedImage;
         });
         initializeGamePromise.then((gameImage) => {
-            // document.body.appendChild(gameImage);
+            settings.columnCount = columnInput.value;
+            settings.rowCount = rowInput.value;
             initializeGame(gameImage);
         }).catch(() => {
 
         })
     });
+
+    beginButton.addEventListener("click", () => { startGame(); });
+    menuButton.addEventListener("click", () => {
+        removeMouseHandlers();
+        showGalleryView();
+    });
     loadHDGallery();
 }
 
-initializeGallery();
+initializeUI();

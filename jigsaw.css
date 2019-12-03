@@ -3,15 +3,79 @@
     margin: 0;
     box-sizing: border-box;
 }
+
+#content {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
+    margin: 0 auto;
+}
+
 #jigsawCanvas {
-    margin-left: 50px;
     display:none;
+    width: 100%;
+    height: auto;
+    
 }
-#originalCanvas {
-    display:none;
+
+#gameMenu {
+    display: none;
+    flex-direction: row;
+    justify-content: space-between;
+    margin-left: 1vw;
+    margin-right: 1vw;
+    margin-top: 2vh;
+    
 }
-#beginButton {
+
+#victoryText {
     display:none;
+    text-transform: uppercase;
+    color: purple;
+    font-size: 1.8em;
+}
+
+#galleryMenu {
+    display:flex;
+    flex-direction: row;
+    justify-content: space-between;
+    
+}
+
+
+
+button {
+    color: #fff !important;
+    text-transform: uppercase;
+    text-decoration: none;
+    background: #30e618;
+    padding: 20px;
+    border-radius: 5px;
+    display: inline-block;
+    border: none;
+}
+
+.inputContainer {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+}
+
+input {
+    width: 50px;
+    font-size: 1.5em;
+}
+
+label {
+    font-size: 1.5em;
+}
+
+#gallery {
+    list-style: none;
+    display: grid;
+    grid-template-columns: 1fr;
+    
 }
 
 .galleryItem {
@@ -19,24 +83,28 @@
     padding:10px;
 }
 
+.selected {
+    background-color: #30e618;
+}
+
 .galleryImage {
     width: -webkit-fill-available;
 }
 
-#gallery {
-    margin-right: 1vw;
-    margin-left: 1vw;
-    list-style: none;
-    display: grid;
-    grid-template-columns: 1fr;
-}
+
 
 @media screen and (min-width: 850px) {
+    #content {
+        width: 80%;
+    }
     #gallery {
         grid-template-columns: 1fr 1fr;
     }
 }
-@media screen and (min-width: 1300px) {
+@media screen and (min-width: 1450px) {
+    #content {
+        width:60%;
+    }
     #gallery {
         grid-template-columns: 1fr 1fr 1fr;
     }
